@@ -9,8 +9,8 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.fitnessjournalapplication.data.StrengthExercise
-import com.example.fitnessjournalapplication.data.StrengthExerciseDao
+import com.example.fitnessjournalapplication.data.CardioExercise
+import com.example.fitnessjournalapplication.data.CardioExerciseDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -18,20 +18,20 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StrengthLogScreen(
-    dao: StrengthExerciseDao,
+fun CardioLogScreen(
+    dao: CardioExerciseDao,
     onBack: () -> Unit
 ) {
     val today = LocalDate.now()
     var showAddDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf<StrengthExercise?>(null) }
+    var showEditDialog by remember { mutableStateOf<CardioExercise?>(null) }
 
     val exercises by dao.getExercisesForDate(today).collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Strength Training Log") },
+                title = { Text("Cardio Log") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -53,7 +53,7 @@ fun StrengthLogScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (exercises.isEmpty()) {
-                item { Text("No exercises logged for today", style = MaterialTheme.typography.bodyLarge) }
+                item { Text("No cardio exercises logged for today", style = MaterialTheme.typography.bodyLarge) }
             } else {
                 items(exercises.size) { index ->
                     val exercise = exercises[index]
@@ -63,7 +63,7 @@ fun StrengthLogScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(exercise.exercise, style = MaterialTheme.typography.titleMedium)
-                            Text("Sets: ${exercise.sets}, Reps: ${exercise.reps}, Weight: ${exercise.weight} kg")
+                            Text("Duration: ${exercise.duration} mins, Distance: ${exercise.distance} km")
 
                             Spacer(Modifier.height(8.dp))
 
@@ -80,10 +80,10 @@ fun StrengthLogScreen(
         }
     }
 
-    // ------------------- ADD EXERCISE DIALOG -------------------
+    // ------------------- ADD DIALOG -------------------
     if (showAddDialog) {
-        ExerciseDialog(
-            title = "Add Strength Exercise",
+        CardioExerciseDialog(
+            title = "Add Cardio Exercise",
             initialExercise = null,
             onDismiss = { showAddDialog = false },
             onSave = { exercise ->
@@ -93,10 +93,10 @@ fun StrengthLogScreen(
         )
     }
 
-    // ------------------- EDIT EXERCISE DIALOG -------------------
+    // ------------------- EDIT DIALOG -------------------
     showEditDialog?.let { exercise ->
-        ExerciseDialog(
-            title = "Edit Strength Exercise",
+        CardioExerciseDialog(
+            title = "Edit Cardio Exercise",
             initialExercise = exercise,
             onDismiss = { showEditDialog = null },
             onSave = { updatedExercise ->
@@ -108,16 +108,15 @@ fun StrengthLogScreen(
 }
 
 @Composable
-fun ExerciseDialog(
+fun CardioExerciseDialog(
     title: String,
-    initialExercise: StrengthExercise?,
+    initialExercise: CardioExercise?,
     onDismiss: () -> Unit,
-    onSave: (StrengthExercise) -> Unit
+    onSave: (CardioExercise) -> Unit
 ) {
     var name by remember { mutableStateOf(initialExercise?.exercise ?: "") }
-    var sets by remember { mutableStateOf(initialExercise?.sets?.toString() ?: "") }
-    var reps by remember { mutableStateOf(initialExercise?.reps?.toString() ?: "") }
-    var weight by remember { mutableStateOf(initialExercise?.weight?.toString() ?: "") }
+    var duration by remember { mutableStateOf(initialExercise?.duration?.toString() ?: "") }
+    var distance by remember { mutableStateOf(initialExercise?.distance?.toString() ?: "") }
     val date = initialExercise?.date ?: LocalDate.now()
     val id = initialExercise?.id ?: 0
 
@@ -126,25 +125,40 @@ fun ExerciseDialog(
         title = { Text(title) },
         text = {
             Column {
-                TextField(value = name, onValueChange = { name = it }, placeholder = { Text("Exercise name") }, singleLine = true)
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = { Text("Exercise name") },
+                    singleLine = true
+                )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    TextField(value = sets, onValueChange = { sets = it.filter { c -> c.isDigit() } }, placeholder = { Text("Sets") }, modifier = Modifier.weight(1f), singleLine = true)
-                    TextField(value = reps, onValueChange = { reps = it.filter { c -> c.isDigit() } }, placeholder = { Text("Reps") }, modifier = Modifier.weight(1f), singleLine = true)
-                    TextField(value = weight, onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } }, placeholder = { Text("Weight") }, modifier = Modifier.weight(1f), singleLine = true)
+                    TextField(
+                        value = duration,
+                        onValueChange = { duration = it.filter { c -> c.isDigit() } },
+                        placeholder = { Text("Duration (mins)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    TextField(
+                        value = distance,
+                        onValueChange = { distance = it.filter { c -> c.isDigit() || c == '.' } },
+                        placeholder = { Text("Distance (km)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 if (name.isNotBlank()) {
-                    val exercise = StrengthExercise(
+                    val exercise = CardioExercise(
                         id = id,
                         date = date,
                         exercise = name,
-                        sets = sets.toIntOrNull() ?: 0,
-                        reps = reps.toIntOrNull() ?: 0,
-                        weight = weight.toFloatOrNull() ?: 0f
+                        duration = duration.toIntOrNull() ?: 0,
+                        distance = distance.toFloatOrNull() ?: 0f
                     )
                     onSave(exercise)
                 }

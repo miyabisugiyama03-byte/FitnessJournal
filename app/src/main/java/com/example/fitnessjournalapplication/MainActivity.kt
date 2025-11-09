@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -30,10 +29,13 @@ import com.kizitonwose.calendar.core.*
 import java.time.*
 import com.example.fitnessjournalapplication.data.* // AppDatabase and DAO
 import com.example.fitnessjournalapplication.ui.screens.StrengthLogScreen
+import com.example.fitnessjournalapplication.ui.screens.CardioLogScreen
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
         enableEdgeToEdge()
         setContent {
             FitnessJournalApplicationTheme {
@@ -99,18 +101,27 @@ fun FitnessJournalApp() {
             composable(Routes.STRENGTH_LOG) {
                 val context = LocalContext.current
                 val db = AppDatabase.getInstance(context) // ← Get the singleton database instance
-                val dao = db.strengthExerciseDao()        // ← Get the DAO from the database
+                val strengthDao = db.strengthExerciseDao()        // ← Get the DAO from the database
 
                 StrengthLogScreen(
-                    dao = dao,
+                    dao = strengthDao,
+                    onBack = { navController.navigateUp() }
+                )
+            }
+
+            composable(Routes.CARDIO_LOG) {
+                val context = LocalContext.current
+                val db = AppDatabase.getInstance(context) // ← Get the singleton database instance
+                val cardioDao = db.cardioExerciseDao()        // ← Get the DAO from the database
+
+                CardioLogScreen(
+                    dao = cardioDao,
                     onBack = { navController.navigateUp() }
                 )
             }
 
 
 
-
-            composable(Routes.CARDIO_LOG) { CardioLogScreen(onBack = { navController.navigateUp() }) }
             composable(Routes.CALENDAR) { CalendarScreen(onBack = { navController.navigateUp() }) }
         }
     }
@@ -229,42 +240,4 @@ fun CalendarDayCell(day: CalendarDay, isSelected: Boolean, isToday: Boolean, onC
     }
 }
 
-// ------------------- CARDIO LOG -------------------
-@Composable
-fun CardioLogScreen(
-    exercises: List<String> = listOf("Running","Cycling","Rowing","Jump Rope","Swimming"),
-    onBack: () -> Unit
-) {
-    Scaffold(topBar = {
-        CenterAlignedTopAppBar(
-            title = { Text("Cardio Log") },
-            navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
-            }
-        )
-    }) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(exercises.size) { index ->
-                val exercise = exercises[index]
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { /* handle click if needed */ },
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Text(
-                        exercise,
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-        }
-    }
-}
+

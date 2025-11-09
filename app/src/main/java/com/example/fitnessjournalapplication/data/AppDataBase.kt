@@ -7,14 +7,15 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(
-    entities = [StrengthExercise::class],
-    version = 3,
+    entities = [StrengthExercise::class, CardioExercise::class],
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun strengthExerciseDao(): StrengthExerciseDao
+    abstract fun cardioExerciseDao(): CardioExerciseDao
 
     companion object {
         @Volatile
