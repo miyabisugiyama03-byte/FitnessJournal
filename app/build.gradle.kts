@@ -68,6 +68,7 @@ dependencies {
     // Room (for workout data)
     implementation("androidx.room:room-runtime:2.8.3")
     implementation("androidx.room:room-ktx:2.8.3")
+    implementation(libs.androidx.foundation)
     kapt("androidx.room:room-compiler:2.8.3")
 
     // Testing (minimal)

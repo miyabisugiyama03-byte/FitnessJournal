@@ -1,40 +1,53 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.fitnessjournalapplication.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.fitnessjournalapplication.data.MasterExercise
 import com.example.fitnessjournalapplication.data.StrengthExercise
 import com.example.fitnessjournalapplication.data.StrengthExerciseDao
-import kotlinx.coroutines.CoroutineScope
+import com.example.fitnessjournalapplication.data.MasterExerciseDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrengthLogScreen(
     dao: StrengthExerciseDao,
+    masterDao: MasterExerciseDao,
+    selectedDate: LocalDate,
     onBack: () -> Unit
 ) {
-    val today = LocalDate.now()
+    val scope = rememberCoroutineScope()
+
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf<StrengthExercise?>(null) }
+    var showMasterDialog by remember { mutableStateOf(false) }
 
-    val exercises by dao.getExercisesForDate(today).collectAsState(initial = emptyList())
+    val exercises by dao.getExercisesForDate(selectedDate).collectAsState(initial = emptyList())
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Strength Training Log") },
+                title = { Text("Strength Log - $selectedDate") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showMasterDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Master Exercises")
                     }
                 }
             )
@@ -47,30 +60,26 @@ fun StrengthLogScreen(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (exercises.isEmpty()) {
-                item { Text("No exercises logged for today", style = MaterialTheme.typography.bodyLarge) }
+                item { Text("No exercises logged for $selectedDate") }
             } else {
                 items(exercises.size) { index ->
-                    val exercise = exercises[index]
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(4.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(exercise.exercise, style = MaterialTheme.typography.titleMedium)
-                            Text("Sets: ${exercise.sets}, Reps: ${exercise.reps}, Weight: ${exercise.weight} kg")
+                    val ex = exercises[index]
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(ex.exercise, style = MaterialTheme.typography.titleMedium)
+                            Text("Sets: ${ex.sets}, Reps: ${ex.reps}, Weight: ${ex.weight} kg")
 
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { showEditDialog = exercise }) { Text("Edit") }
-                                Button(onClick = {
-                                    CoroutineScope(Dispatchers.IO).launch { dao.delete(exercise) }
+                                TextButton(onClick = { showEditDialog = ex }) { Text("Edit") }
+                                TextButton(onClick = {
+                                    scope.launch(Dispatchers.IO) { dao.delete(ex) }
                                 }) { Text("Delete") }
                             }
                         }
@@ -80,75 +89,264 @@ fun StrengthLogScreen(
         }
     }
 
-    // ------------------- ADD EXERCISE DIALOG -------------------
+    // Add entry dialog
     if (showAddDialog) {
-        ExerciseDialog(
-            title = "Add Strength Exercise",
-            initialExercise = null,
+        StrengthExerciseDialog(
+            title = "Add Exercise",
+            masterDao = masterDao,
+            initial = null,
+            selectedDate = selectedDate,
             onDismiss = { showAddDialog = false },
-            onSave = { exercise ->
-                CoroutineScope(Dispatchers.IO).launch { dao.insert(exercise) }
+            onSave = {
+                scope.launch(Dispatchers.IO) { dao.insert(it) }
                 showAddDialog = false
             }
         )
     }
 
-    // ------------------- EDIT EXERCISE DIALOG -------------------
+    // Edit dialog
     showEditDialog?.let { exercise ->
-        ExerciseDialog(
-            title = "Edit Strength Exercise",
-            initialExercise = exercise,
+        StrengthExerciseDialog(
+            title = "Edit Exercise",
+            masterDao = masterDao,
+            initial = exercise,
+            selectedDate = selectedDate,
             onDismiss = { showEditDialog = null },
-            onSave = { updatedExercise ->
-                CoroutineScope(Dispatchers.IO).launch { dao.update(updatedExercise) }
+            onSave = {
+                scope.launch(Dispatchers.IO) { dao.update(it) }
                 showEditDialog = null
             }
         )
     }
+
+    // Master list dialog
+    if (showMasterDialog) {
+        MasterExerciseDialog(
+            masterDao = masterDao,
+            onDismiss = { showMasterDialog = false }
+        )
+    }
 }
 
+/* ---------------- StrengthExerciseDialog ---------------- */
+
 @Composable
-fun ExerciseDialog(
+fun StrengthExerciseDialog(
     title: String,
-    initialExercise: StrengthExercise?,
+    masterDao: MasterExerciseDao,
+    initial: StrengthExercise?,
+    selectedDate: LocalDate,
     onDismiss: () -> Unit,
     onSave: (StrengthExercise) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialExercise?.exercise ?: "") }
-    var sets by remember { mutableStateOf(initialExercise?.sets?.toString() ?: "") }
-    var reps by remember { mutableStateOf(initialExercise?.reps?.toString() ?: "") }
-    var weight by remember { mutableStateOf(initialExercise?.weight?.toString() ?: "") }
-    val date = initialExercise?.date ?: LocalDate.now()
-    val id = initialExercise?.id ?: 0
+    val scope = rememberCoroutineScope()
+    val masterExercises by masterDao.getAllExercises().collectAsState(initial = emptyList())
+
+    var selectedExercise by remember { mutableStateOf(initial?.exercise ?: "") }
+    var sets by remember { mutableStateOf(initial?.sets?.toString() ?: "") }
+    var reps by remember { mutableStateOf(initial?.reps?.toString() ?: "") }
+    var weight by remember { mutableStateOf(initial?.weight?.toString() ?: "") }
+
+    // separate states for dropdown vs "add new master" dialog
+    var showDropdown by remember { mutableStateOf(false) }
+    var showAddMasterDialog by remember { mutableStateOf(false) }
+    var newMasterExercise by remember { mutableStateOf("") }
+
+    val id = initial?.id ?: 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
             Column {
-                TextField(value = name, onValueChange = { name = it }, placeholder = { Text("Exercise name") }, singleLine = true)
+                // Exercise dropdown (shows master list + option to add)
+                ExposedDropdownMenuBox(
+                    expanded = showDropdown,
+                    onExpandedChange = { showDropdown = it }
+                ) {
+                    TextField(
+                        value = selectedExercise,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Exercise") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = showDropdown,
+                        onDismissRequest = { showDropdown = false }
+                    ) {
+                        // show available master exercises
+                        if (masterExercises.isEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("No master exercises yet") },
+                                onClick = { /* no-op */ }
+                            )
+                        } else {
+                            masterExercises.forEach { ex ->
+                                DropdownMenuItem(
+                                    text = { Text(ex.name) },
+                                    onClick = {
+                                        selectedExercise = ex.name
+                                        showDropdown = false
+                                    }
+                                )
+                            }
+                        }
+
+                        // Add new master exercise option
+                        DropdownMenuItem(
+                            text = { Text("➕ Add New Exercise…") },
+                            onClick = {
+                                showDropdown = false
+                                showAddMasterDialog = true
+                            }
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    TextField(value = sets, onValueChange = { sets = it.filter { c -> c.isDigit() } }, placeholder = { Text("Sets") }, modifier = Modifier.weight(1f), singleLine = true)
-                    TextField(value = reps, onValueChange = { reps = it.filter { c -> c.isDigit() } }, placeholder = { Text("Reps") }, modifier = Modifier.weight(1f), singleLine = true)
-                    TextField(value = weight, onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } }, placeholder = { Text("Weight") }, modifier = Modifier.weight(1f), singleLine = true)
+
+                Row {
+                    TextField(
+                        value = sets,
+                        onValueChange = { sets = it.filter(Char::isDigit) },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Sets") }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    TextField(
+                        value = reps,
+                        onValueChange = { reps = it.filter(Char::isDigit) },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Reps") }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    TextField(
+                        value = weight,
+                        onValueChange = { weight = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Weight (kg)") }
+                    )
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                if (name.isNotBlank()) {
-                    val exercise = StrengthExercise(
-                        id = id,
-                        date = date,
-                        exercise = name,
-                        sets = sets.toIntOrNull() ?: 0,
-                        reps = reps.toIntOrNull() ?: 0,
-                        weight = weight.toFloatOrNull() ?: 0f
+                if (selectedExercise.isNotBlank()) {
+                    onSave(
+                        StrengthExercise(
+                            id = id,
+                            date = selectedDate,
+                            exercise = selectedExercise,
+                            sets = sets.toIntOrNull() ?: 0,
+                            reps = reps.toIntOrNull() ?: 0,
+                            weight = weight.toFloatOrNull() ?: 0f
+                        )
                     )
-                    onSave(exercise)
                 }
-            }) { Text("Save") }
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+
+    // Add New Master Exercise dialog (simple text input)
+    if (showAddMasterDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddMasterDialog = false },
+            title = { Text("Add New Exercise") },
+            text = {
+                Column {
+                    TextField(
+                        value = newMasterExercise,
+                        onValueChange = { newMasterExercise = it },
+                        placeholder = { Text("Exercise name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = newMasterExercise.trim()
+                    if (name.isNotBlank()) {
+                        scope.launch(Dispatchers.IO) {
+                            masterDao.insert(MasterExercise(name = name))
+                        }
+                        // set the newly added exercise as the selected one immediately
+                        selectedExercise = name
+                    }
+                    newMasterExercise = ""
+                    showAddMasterDialog = false
+                }) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddMasterDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+/* ---------------- MasterExerciseDialog ---------------- */
+
+@Composable
+fun MasterExerciseDialog(
+    masterDao: MasterExerciseDao,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var newExercise by remember { mutableStateOf("") }
+    val exercises by masterDao.getAllExercises().collectAsState(initial = emptyList())
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Master Exercise List") },
+        text = {
+            Column {
+                if (exercises.isEmpty()) {
+                    Text("No master exercises yet")
+                } else {
+                    exercises.forEach { ex ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(ex.name)
+                            TextButton(onClick = {
+                                scope.launch(Dispatchers.IO) { masterDao.delete(ex) }
+                            }) { Text("Delete") }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                TextField(
+                    value = newExercise,
+                    onValueChange = { newExercise = it },
+                    label = { Text("Add Exercise") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val name = newExercise.trim()
+                if (name.isNotBlank()) {
+                    scope.launch(Dispatchers.IO) { masterDao.insert(MasterExercise(name = name)) }
+                }
+                newExercise = ""
+                onDismiss()
+            }) { Text("Done") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }

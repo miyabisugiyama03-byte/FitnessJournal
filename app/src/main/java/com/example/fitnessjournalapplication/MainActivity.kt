@@ -18,24 +18,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.fitnessjournalapplication.ui.theme.FitnessJournalApplicationTheme
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.*
-import java.time.*
-import com.example.fitnessjournalapplication.data.* // AppDatabase and DAO
-import com.example.fitnessjournalapplication.ui.screens.StrengthLogScreen
+import com.example.fitnessjournalapplication.data.*
 import com.example.fitnessjournalapplication.ui.screens.CardioLogScreen
-
+import com.example.fitnessjournalapplication.ui.screens.StrengthLogScreen
+import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.YearMonth
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
         enableEdgeToEdge()
         setContent {
             FitnessJournalApplicationTheme {
@@ -48,9 +51,13 @@ class MainActivity : ComponentActivity() {
 object Routes {
     const val DASHBOARD = "dashboard"
     const val EXERCISE_LOG = "exercise_log"
-    const val STRENGTH_LOG = "strength_log"
-    const val CARDIO_LOG = "cardio_log"
     const val CALENDAR = "calendar"
+
+    // Strength & Cardio with date parameter
+    const val STRENGTH_LOG_BASE = "strength_log"
+    const val STRENGTH_LOG = "$STRENGTH_LOG_BASE/{date}"
+    const val CARDIO_LOG_BASE = "cardio_log"
+    const val CARDIO_LOG = "$CARDIO_LOG_BASE/{date}"
 }
 
 @Composable
@@ -63,7 +70,7 @@ fun FitnessJournalApp() {
             NavigationBar {
                 listOf(
                     Routes.DASHBOARD to Icons.Default.Home,
-                    Routes.EXERCISE_LOG to Icons.Default.Favorite,
+                    Routes.EXERCISE_LOG to Icons.Default.FitnessCenter,
                     Routes.CALENDAR to Icons.Default.DateRange
                 ).forEach { (route, icon) ->
                     NavigationBarItem(
@@ -87,49 +94,75 @@ fun FitnessJournalApp() {
             startDestination = Routes.DASHBOARD,
             modifier = Modifier.padding(innerPadding)
         ) {
+
+            // ---------------- DASHBOARD ----------------
             composable(Routes.DASHBOARD) {
                 DashboardScreen { navController.navigate(Routes.CALENDAR) }
             }
 
+            // ---------------- EXERCISE LOG ----------------
             composable(Routes.EXERCISE_LOG) {
                 ExerciseLogScreen(
-                    onStrengthClick = { navController.navigate(Routes.STRENGTH_LOG) },
-                    onCardioClick = { navController.navigate(Routes.CARDIO_LOG) }
+                    onStrengthClick = {
+                        val today = LocalDate.now().toString()
+                        navController.navigate("${Routes.STRENGTH_LOG_BASE}/$today")
+                    },
+                    onCardioClick = {
+                        val today = LocalDate.now().toString()
+                        navController.navigate("${Routes.CARDIO_LOG_BASE}/$today")
+                    }
                 )
             }
 
-            composable(Routes.STRENGTH_LOG) {
+            // ---------------- STRENGTH LOG ----------------
+            composable(
+                route = Routes.STRENGTH_LOG,
+                arguments = listOf(navArgument("date") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val dateString = backStackEntry.arguments?.getString("date") ?: LocalDate.now().toString()
+                val selectedDate = LocalDate.parse(dateString)
                 val context = LocalContext.current
-                val db = AppDatabase.getInstance(context) // ← Get the singleton database instance
-                val strengthDao = db.strengthExerciseDao()        // ← Get the DAO from the database
+                val strengthDao = AppDatabase.getInstance(context).strengthExerciseDao()
+                val masterDao = AppDatabase.getInstance(context).masterExerciseDao()
 
                 StrengthLogScreen(
                     dao = strengthDao,
+                    masterDao = masterDao,
+                    selectedDate = selectedDate,
                     onBack = { navController.navigateUp() }
                 )
             }
 
-            composable(Routes.CARDIO_LOG) {
+            // ---------------- CARDIO LOG ----------------
+            composable(
+                route = Routes.CARDIO_LOG,
+                arguments = listOf(navArgument("date") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val dateString = backStackEntry.arguments?.getString("date") ?: LocalDate.now().toString()
+                val selectedDate = LocalDate.parse(dateString)
                 val context = LocalContext.current
-                val db = AppDatabase.getInstance(context) // ← Get the singleton database instance
-                val cardioDao = db.cardioExerciseDao()        // ← Get the DAO from the database
+                val dao = AppDatabase.getInstance(context).cardioExerciseDao()
 
                 CardioLogScreen(
-                    dao = cardioDao,
+                    dao = dao,
+                    selectedDate = selectedDate,
                     onBack = { navController.navigateUp() }
                 )
             }
 
-
-
-            composable(Routes.CALENDAR) { CalendarScreen(onBack = { navController.navigateUp() }) }
+            // ---------------- CALENDAR ----------------
+            composable(Routes.CALENDAR) {
+                CalendarScreen(
+                    onBack = { navController.navigateUp() },
+                    onOpenStrengthForDate = { date -> navController.navigate("${Routes.STRENGTH_LOG_BASE}/${date}") },
+                    onOpenCardioForDate = { date -> navController.navigate("${Routes.CARDIO_LOG_BASE}/${date}") }
+                )
+            }
         }
     }
 }
 
-
-
-// ------------------- DASHBOARD -------------------
+// ---------------- DASHBOARD ----------------
 @Composable
 fun DashboardScreen(onCalendarClick: () -> Unit) {
     Box(
@@ -144,7 +177,7 @@ fun DashboardScreen(onCalendarClick: () -> Unit) {
     }
 }
 
-// ------------------- EXERCISE LOG -------------------
+// ---------------- EXERCISE LOG ----------------
 @Composable
 fun ExerciseLogScreen(onStrengthClick: () -> Unit, onCardioClick: () -> Unit) {
     Column(
@@ -158,9 +191,13 @@ fun ExerciseLogScreen(onStrengthClick: () -> Unit, onCardioClick: () -> Unit) {
     }
 }
 
-// ------------------- CALENDAR -------------------
+// ---------------- CALENDAR ----------------
 @Composable
-fun CalendarScreen(onBack: () -> Unit) {
+fun CalendarScreen(
+    onBack: () -> Unit,
+    onOpenStrengthForDate: (LocalDate) -> Unit,
+    onOpenCardioForDate: (LocalDate) -> Unit
+) {
     val today = LocalDate.now()
     val currentMonth = YearMonth.now()
     val startMonth = currentMonth.minusMonths(12)
@@ -173,21 +210,59 @@ fun CalendarScreen(onBack: () -> Unit) {
     )
 
     var selectedDate by remember { mutableStateOf<LocalDate?>(today) }
+    val scope = rememberCoroutineScope() // Needed for animateScrollToMonth
 
-    Scaffold(topBar = {
-        CenterAlignedTopAppBar(
-            title = { Text("Workout Calendar") },
-            navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
-            }
-        )
-    }) { innerPadding ->
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Workout Calendar") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(8.dp)
         ) {
+            // Month navigation
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(onClick = {
+                    scope.launch {
+                        val prevMonth = calendarState.firstVisibleMonth.yearMonth.minusMonths(1)
+                        calendarState.animateScrollToMonth(prevMonth)
+                    }
+                }) {
+                    Text("Prev Month")
+                }
+
+                val visibleMonth = calendarState.firstVisibleMonth.yearMonth
+                Text(
+                    text = "${visibleMonth.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${visibleMonth.year}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Button(onClick = {
+                    scope.launch {
+                        val nextMonth = calendarState.firstVisibleMonth.yearMonth.plusMonths(1)
+                        calendarState.animateScrollToMonth(nextMonth)
+                    }
+                }) {
+                    Text("Next Month")
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             HorizontalCalendar(
                 state = calendarState,
                 dayContent = { day ->
@@ -202,19 +277,38 @@ fun CalendarScreen(onBack: () -> Unit) {
 
             Spacer(Modifier.height(16.dp))
 
-            selectedDate?.let {
+            selectedDate?.let { date ->
                 Text(
-                    text = "Selected: ${it.dayOfWeek}, ${it.dayOfMonth} ${it.month}",
+                    text = "Selected: ${date.dayOfWeek}, ${date.dayOfMonth} ${date.month}",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Button(onClick = { onOpenStrengthForDate(date) }) {
+                        Text("Open Strength Log")
+                    }
+                    Button(onClick = { onOpenCardioForDate(date) }) {
+                        Text("Open Cardio Log")
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun CalendarDayCell(day: CalendarDay, isSelected: Boolean, isToday: Boolean, onClick: () -> Unit) {
+fun CalendarDayCell(
+    day: CalendarDay,
+    isSelected: Boolean,
+    isToday: Boolean,
+    onClick: () -> Unit
+) {
     val bgColor = when {
         isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
         isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
@@ -239,5 +333,3 @@ fun CalendarDayCell(day: CalendarDay, isSelected: Boolean, isToday: Boolean, onC
         )
     }
 }
-
-

@@ -13,3 +13,4 @@ data class StrengthExercise(
     val reps: Int = 0,
     val weight: Float = 0f
 )
+
