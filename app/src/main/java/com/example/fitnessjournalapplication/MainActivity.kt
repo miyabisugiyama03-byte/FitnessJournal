@@ -24,13 +24,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.fitnessjournalapplication.Screens.*
 import com.example.fitnessjournalapplication.ui.theme.FitnessJournalApplicationTheme
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.*
 import com.example.fitnessjournalapplication.data.*
-import com.example.fitnessjournalapplication.ui.screens.CardioLogScreen
-import com.example.fitnessjournalapplication.ui.screens.StrengthLogScreen
+import com.example.fitnessjournalapplication.ui.screens.*
+
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -97,8 +98,10 @@ fun FitnessJournalApp() {
 
             // ---------------- DASHBOARD ----------------
             composable(Routes.DASHBOARD) {
-                DashboardScreen { navController.navigate(Routes.CALENDAR) }
+                DashboardScreen()
             }
+
+
 
             // ---------------- EXERCISE LOG ----------------
             composable(Routes.EXERCISE_LOG) {

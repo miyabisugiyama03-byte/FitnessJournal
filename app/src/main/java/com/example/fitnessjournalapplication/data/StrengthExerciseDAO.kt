@@ -25,5 +25,7 @@ interface StrengthExerciseDao {
     @Query("SELECT * FROM strength_exercises WHERE date = :date")
     fun getExercisesForDate(date: LocalDate): Flow<List<StrengthExercise>>
 
+    @Query("SELECT * FROM strength_exercises ORDER BY date ASC")
+    fun getAllStrengthExercises(): Flow<List<StrengthExercise>>
 
 }

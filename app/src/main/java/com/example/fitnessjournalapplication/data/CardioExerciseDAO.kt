@@ -23,7 +23,7 @@ interface CardioExerciseDao{
     @Query("SELECT * FROM cardio_exercises WHERE date = :date")
     fun getExercisesForDate(date: LocalDate): Flow<List<CardioExercise>>
 
-    @Query("SELECT * FROM cardio_exercises ORDER BY date DESC")
-    fun getAllExercises(): Flow<List<CardioExercise>>
+    @Query("SELECT * FROM cardio_exercises ORDER BY date ASC")
+    fun getAllCardioExercises(): Flow<List<CardioExercise>>
 
 }

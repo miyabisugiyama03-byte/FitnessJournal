@@ -15,4 +15,5 @@ interface CardioMasterExerciseDao {
     suspend fun delete(exercise: CardioMasterExercise)
 
 
+
 }

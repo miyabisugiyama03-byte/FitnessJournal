@@ -71,6 +71,9 @@ dependencies {
     implementation(libs.androidx.foundation)
     kapt("androidx.room:room-compiler:2.8.3")
 
+    //AndroidChart
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
     // Testing (minimal)
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
