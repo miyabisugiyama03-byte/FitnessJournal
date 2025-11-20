@@ -2,18 +2,24 @@ package com.example.fitnessjournalapplication.data
 
 import android.content.Context
 import androidx.room.*
-import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-@Database(entities = [StrengthExercise::class, MasterExercise::class, CardioExercise::class], version = 1)
+@Database(
+    entities = [StrengthExercise::class, StrengthMasterExercise::class,
+        CardioExercise::class, CardioMasterExercise::class],
+    version = 11,
+    exportSchema = false
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun strengthExerciseDao(): StrengthExerciseDao
-    abstract fun masterExerciseDao(): MasterExerciseDao
+    abstract fun strengthMasterExerciseDao(): StrengthMasterExerciseDao
     abstract fun cardioExerciseDao(): CardioExerciseDao
+    abstract fun cardioMasterExerciseDao(): CardioMasterExerciseDao
 
     companion object {
         @Volatile
@@ -26,26 +32,43 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "fitness_journal_db"
                 )
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            super.onCreate(db)
-                            INSTANCE?.let { database ->
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    val dao = database.masterExerciseDao()
-                                    val exercises = listOf(
-                                        "Bench Press", "Squat", "Deadlift", "Overhead Press",
-                                        "Barbell Row", "Lat Pulldown", "Bicep Curl", "Tricep Pushdown"
-                                    )
-                                    exercises.forEach { name ->
-                                        dao.insert(MasterExercise(name = name))
-                                    }
-                                }
-                            }
-                        }
-                    })
+                    .fallbackToDestructiveMigration() // optional: keeps DB in sync
                     .build()
                 INSTANCE = instance
+
+                // Prepopulate master exercises
+                prepopulateIfEmpty(instance)
+
                 instance
+            }
+        }
+
+        private fun prepopulateIfEmpty(db: AppDatabase) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val strengthDao = db.strengthMasterExerciseDao()
+                val cardioDao = db.cardioMasterExerciseDao()
+
+                // Populate Strength Master Exercises if empty
+                if (strengthDao.getAllExercises().first().isEmpty()) {
+                    val strengthExercises = listOf(
+                        "Bench Press", "Squat", "Deadlift", "Overhead Press",
+                        "Barbell Row", "Lat Pulldown", "Bicep Curl", "Tricep Extensions"
+                    )
+                    strengthExercises.forEach { name ->
+                        strengthDao.insert(StrengthMasterExercise(name = name))
+                    }
+                }
+
+                // Populate Cardio Master Exercises if empty
+                if (cardioDao.getAllExercises().first().isEmpty()) {
+                    val cardioExercises = listOf(
+                        "Running", "Cycling", "Walking", "Rowing",
+                        "Elliptical", "Swimming", "Stair Master", "Jump Rope"
+                    )
+                    cardioExercises.forEach { name ->
+                        cardioDao.insert(CardioMasterExercise(name = name))
+                    }
+                }
             }
         }
     }

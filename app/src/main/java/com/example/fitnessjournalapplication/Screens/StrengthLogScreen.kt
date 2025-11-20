@@ -13,10 +13,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.fitnessjournalapplication.data.MasterExercise
-import com.example.fitnessjournalapplication.data.StrengthExercise
-import com.example.fitnessjournalapplication.data.StrengthExerciseDao
-import com.example.fitnessjournalapplication.data.MasterExerciseDao
+import com.example.fitnessjournalapplication.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -24,7 +21,7 @@ import java.time.LocalDate
 @Composable
 fun StrengthLogScreen(
     dao: StrengthExerciseDao,
-    masterDao: MasterExerciseDao,
+    masterDao: StrengthMasterExerciseDao,
     selectedDate: LocalDate,
     onBack: () -> Unit
 ) {
@@ -133,7 +130,7 @@ fun StrengthLogScreen(
 @Composable
 fun StrengthExerciseDialog(
     title: String,
-    masterDao: MasterExerciseDao,
+    masterDao: StrengthMasterExerciseDao,
     initial: StrengthExercise?,
     selectedDate: LocalDate,
     onDismiss: () -> Unit,
@@ -276,7 +273,7 @@ fun StrengthExerciseDialog(
                     val name = newMasterExercise.trim()
                     if (name.isNotBlank()) {
                         scope.launch(Dispatchers.IO) {
-                            masterDao.insert(MasterExercise(name = name))
+                            masterDao.insert(StrengthMasterExercise(name = name))
                         }
                         // set the newly added exercise as the selected one immediately
                         selectedExercise = name
@@ -298,7 +295,7 @@ fun StrengthExerciseDialog(
 
 @Composable
 fun MasterExerciseDialog(
-    masterDao: MasterExerciseDao,
+    masterDao: StrengthMasterExerciseDao,
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -342,7 +339,7 @@ fun MasterExerciseDialog(
             TextButton(onClick = {
                 val name = newExercise.trim()
                 if (name.isNotBlank()) {
-                    scope.launch(Dispatchers.IO) { masterDao.insert(MasterExercise(name = name)) }
+                    scope.launch(Dispatchers.IO) { masterDao.insert(StrengthMasterExercise(name = name)) }
                 }
                 newExercise = ""
                 onDismiss()

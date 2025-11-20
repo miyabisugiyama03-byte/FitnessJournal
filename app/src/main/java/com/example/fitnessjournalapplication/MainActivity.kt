@@ -123,11 +123,12 @@ fun FitnessJournalApp() {
                 val selectedDate = LocalDate.parse(dateString)
                 val context = LocalContext.current
                 val strengthDao = AppDatabase.getInstance(context).strengthExerciseDao()
-                val masterDao = AppDatabase.getInstance(context).masterExerciseDao()
+                val strengthMasterDao = AppDatabase.getInstance(context).strengthMasterExerciseDao()
+
 
                 StrengthLogScreen(
                     dao = strengthDao,
-                    masterDao = masterDao,
+                    masterDao = strengthMasterDao,
                     selectedDate = selectedDate,
                     onBack = { navController.navigateUp() }
                 )
@@ -141,10 +142,13 @@ fun FitnessJournalApp() {
                 val dateString = backStackEntry.arguments?.getString("date") ?: LocalDate.now().toString()
                 val selectedDate = LocalDate.parse(dateString)
                 val context = LocalContext.current
-                val dao = AppDatabase.getInstance(context).cardioExerciseDao()
+                val cardioDao = AppDatabase.getInstance(context).cardioExerciseDao()
+                val cardioMasterDao = AppDatabase.getInstance(context).cardioMasterExerciseDao()
+
 
                 CardioLogScreen(
-                    dao = dao,
+                    dao = cardioDao,
+                    masterDao = cardioMasterDao,
                     selectedDate = selectedDate,
                     onBack = { navController.navigateUp() }
                 )
