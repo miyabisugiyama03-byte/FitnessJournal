@@ -9,8 +9,8 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [StrengthExercise::class, StrengthMasterExercise::class,
-        CardioExercise::class, CardioMasterExercise::class],
-    version = 11,
+        CardioExercise::class, CardioMasterExercise::class, WeeklyGoal::class],
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -20,6 +20,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun strengthMasterExerciseDao(): StrengthMasterExerciseDao
     abstract fun cardioExerciseDao(): CardioExerciseDao
     abstract fun cardioMasterExerciseDao(): CardioMasterExerciseDao
+
+    abstract fun weeklyGoalDao(): WeeklyGoalDao
 
     companion object {
         @Volatile
@@ -32,7 +34,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "fitness_journal_db"
                 )
-                    .fallbackToDestructiveMigration() // optional: keeps DB in sync
+                    .fallbackToDestructiveMigration(true) // optional: keeps DB in sync
                     .build()
                 INSTANCE = instance
 
@@ -47,6 +49,7 @@ abstract class AppDatabase : RoomDatabase() {
             CoroutineScope(Dispatchers.IO).launch {
                 val strengthDao = db.strengthMasterExerciseDao()
                 val cardioDao = db.cardioMasterExerciseDao()
+                val goalDao = db.weeklyGoalDao()
 
                 // Populate Strength Master Exercises if empty
                 if (strengthDao.getAllExercises().first().isEmpty()) {
@@ -68,6 +71,17 @@ abstract class AppDatabase : RoomDatabase() {
                     cardioExercises.forEach { name ->
                         cardioDao.insert(CardioMasterExercise(name = name))
                     }
+                }
+                val existingGoals = goalDao.getWeeklyGoal().first()
+
+                if (existingGoals == null) {
+                    goalDao.upsert(
+                        WeeklyGoal(
+                            id = 1,
+                            goalPerWeek = 3 // default weekly goal
+                        )
+                    )
+
                 }
             }
         }
