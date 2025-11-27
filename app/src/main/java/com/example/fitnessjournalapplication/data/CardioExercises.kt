@@ -10,7 +10,8 @@ data class CardioExercise(
     val date: LocalDate,
     val exercise: String,
     val duration: Int,
-    val distance: Float
+    val distance: Float,
+    val notes: String? = null
 )
 
 

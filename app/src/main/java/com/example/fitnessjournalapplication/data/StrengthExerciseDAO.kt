@@ -28,4 +28,8 @@ interface StrengthExerciseDao {
     @Query("SELECT * FROM strength_exercises ORDER BY date ASC")
     fun getAllStrengthExercises(): Flow<List<StrengthExercise>>
 
+    @Query("SELECT * FROM strength_exercises WHERE id = :id LIMIT 1")
+    suspend fun getExerciseById(id: Int): StrengthExercise?
+
+
 }

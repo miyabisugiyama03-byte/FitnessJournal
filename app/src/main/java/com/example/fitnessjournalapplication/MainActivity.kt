@@ -59,6 +59,8 @@ object Routes {
     const val STRENGTH_LOG = "$STRENGTH_LOG_BASE/{date}"
     const val CARDIO_LOG_BASE = "cardio_log"
     const val CARDIO_LOG = "$CARDIO_LOG_BASE/{date}"
+
+    const val NOTES_SCREEN = "notes_screen"
 }
 
 @Composable
@@ -133,7 +135,8 @@ fun FitnessJournalApp() {
                     dao = strengthDao,
                     masterDao = strengthMasterDao,
                     selectedDate = selectedDate,
-                    onBack = { navController.navigateUp() }
+                    onBack = { navController.navigateUp() },
+                    navController = navController
                 )
             }
 
@@ -153,7 +156,8 @@ fun FitnessJournalApp() {
                     dao = cardioDao,
                     masterDao = cardioMasterDao,
                     selectedDate = selectedDate,
-                    onBack = { navController.navigateUp() }
+                    onBack = { navController.navigateUp() },
+                    navController = navController
                 )
             }
 
@@ -163,6 +167,28 @@ fun FitnessJournalApp() {
                     onBack = { navController.navigateUp() },
                     onOpenStrengthForDate = { date -> navController.navigate("${Routes.STRENGTH_LOG_BASE}/${date}") },
                     onOpenCardioForDate = { date -> navController.navigate("${Routes.CARDIO_LOG_BASE}/${date}") }
+                )
+            }
+
+            composable(
+                route = "${Routes.NOTES_SCREEN}/{type}/{id}",
+                arguments = listOf(
+                    navArgument("type") { type = NavType.StringType }, // "strength" or "cardio"
+                    navArgument("id") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+
+                val type = backStackEntry.arguments!!.getString("type")!!
+                val id = backStackEntry.arguments!!.getInt("id")
+                val context = LocalContext.current
+                val db = AppDatabase.getInstance(context)
+
+                NotesScreen(
+                    type = type,
+                    id = id,
+                    strengthDao = db.strengthExerciseDao(),
+                    cardioDao = db.cardioExerciseDao(),
+                    onBack = { navController.navigateUp() }
                 )
             }
         }

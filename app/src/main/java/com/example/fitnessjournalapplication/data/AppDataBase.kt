@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 @Database(
     entities = [StrengthExercise::class, StrengthMasterExercise::class,
         CardioExercise::class, CardioMasterExercise::class, WeeklyGoal::class],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

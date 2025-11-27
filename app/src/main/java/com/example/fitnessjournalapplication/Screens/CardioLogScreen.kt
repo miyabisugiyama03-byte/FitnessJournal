@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.fitnessjournalapplication.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,7 +27,8 @@ fun CardioLogScreen(
     dao: CardioExerciseDao,
     masterDao: CardioMasterExerciseDao,
     selectedDate: LocalDate,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    navController: NavController
 ) {
     val scope = rememberCoroutineScope()
 
@@ -74,6 +76,10 @@ fun CardioLogScreen(
                             Text(ex.exercise, style = MaterialTheme.typography.titleMedium)
                             Text("Distance: ${ex.distance} km")
                             Text("Duration: ${ex.duration} min")
+
+                            TextButton(onClick = {
+                                navController.navigate("notes_screen/cardio/${ex.id}")
+                            }) { Text("Notes") }
 
 
                             Spacer(Modifier.height(8.dp))
@@ -148,6 +154,7 @@ fun CardioExerciseDialog(
     var selectedExercise by remember { mutableStateOf(initial?.exercise ?: "") }
     var distance by remember { mutableStateOf(initial?.distance?.toString() ?: "") }
     var duration by remember { mutableStateOf(initial?.duration?.toString() ?: "") }
+    var notes by remember { mutableStateOf(initial?.notes ?: "") }
 
 
     var showDropdown by remember { mutableStateOf(false) }
@@ -199,19 +206,32 @@ fun CardioExerciseDialog(
                 }
 
                 Spacer(Modifier.height(8.dp))
+                Row {
+                    TextField(
+                        value = distance,
+                        onValueChange = { distance = it.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Distance (km)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                TextField(
-                    value = distance,
-                    onValueChange = { distance = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Distance (km)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    TextField(
+                        value = duration,
+                        onValueChange = { duration = it.filter(Char::isDigit) },
+                        label = { Text("Duration (min)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                Spacer(Modifier.height(12.dp))
                 TextField(
-                    value = duration,
-                    onValueChange = { duration = it.filter(Char::isDigit) },
-                    label = { Text("Duration (min)") },
-                    modifier = Modifier.fillMaxWidth()
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    maxLines = 3
                 )
 
 
@@ -227,6 +247,7 @@ fun CardioExerciseDialog(
                             exercise = selectedExercise,
                             distance = distance.toFloatOrNull() ?: 0f,
                             duration = duration.toIntOrNull() ?: 0,
+                            notes = notes.ifBlank { null }
 
                         )
                     )

@@ -11,6 +11,7 @@ data class StrengthExercise(
     val exercise: String,
     val sets: Int = 0,
     val reps: Int = 0,
-    val weight: Float = 0f
+    val weight: Float = 0f,
+    val notes: String? = null
 )
 

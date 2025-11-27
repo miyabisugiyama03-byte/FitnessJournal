@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.fitnessjournalapplication.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,7 +24,8 @@ fun StrengthLogScreen(
     dao: StrengthExerciseDao,
     masterDao: StrengthMasterExerciseDao,
     selectedDate: LocalDate,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    navController: NavController
 ) {
     val scope = rememberCoroutineScope()
 
@@ -70,6 +72,11 @@ fun StrengthLogScreen(
                         Column(Modifier.padding(16.dp)) {
                             Text(ex.exercise, style = MaterialTheme.typography.titleMedium)
                             Text("Sets: ${ex.sets}, Reps: ${ex.reps}, Weight: ${ex.weight} kg")
+
+                            TextButton(onClick = {
+                                navController.navigate("notes_screen/strength/${ex.id}")
+                            }) { Text("Notes") }
+
 
                             Spacer(modifier = Modifier.height(8.dp))
 
@@ -143,6 +150,7 @@ fun StrengthExerciseDialog(
     var sets by remember { mutableStateOf(initial?.sets?.toString() ?: "") }
     var reps by remember { mutableStateOf(initial?.reps?.toString() ?: "") }
     var weight by remember { mutableStateOf(initial?.weight?.toString() ?: "") }
+    var notes by remember { mutableStateOf(initial?.notes ?: "") }
 
     // separate states for dropdown vs "add new master" dialog
     var showDropdown by remember { mutableStateOf(false) }
@@ -228,7 +236,17 @@ fun StrengthExerciseDialog(
                         modifier = Modifier.weight(1f),
                         label = { Text("Weight (kg)") }
                     )
+                    Spacer(Modifier.height(8.dp))
+
+
                 }
+                Spacer(Modifier.height(12.dp))
+                TextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
@@ -241,7 +259,8 @@ fun StrengthExerciseDialog(
                             exercise = selectedExercise,
                             sets = sets.toIntOrNull() ?: 0,
                             reps = reps.toIntOrNull() ?: 0,
-                            weight = weight.toFloatOrNull() ?: 0f
+                            weight = weight.toFloatOrNull() ?: 0f,
+                            notes = notes.ifBlank { null }
                         )
                     )
                 }
