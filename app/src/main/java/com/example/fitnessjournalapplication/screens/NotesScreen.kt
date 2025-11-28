@@ -1,4 +1,4 @@
-package com.example.fitnessjournalapplication.Screens
+package com.example.fitnessjournalapplication.screens
 
 
 import androidx.compose.foundation.layout.*
@@ -15,8 +15,8 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
-    type: String, // "strength" or "cardio"
-    id: Int,
+    type: String, // identifies whether we are editing a strength or cardio entry
+    id: Int,      // exercise record ID
     strengthDao: StrengthExerciseDao,
     cardioDao: CardioExerciseDao,
     onBack: () -> Unit
@@ -26,7 +26,11 @@ fun NotesScreen(
     var text by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
 
-    // Load existing notes
+    /*
+     Load existing notes for the specific log item.
+     Using LaunchedEffect ensures the lookup only runs once
+     when the ID changes, and avoids doing DB access inside UI.
+   */
     LaunchedEffect(id) {
         if (type == "strength") {
             val item = strengthDao.getExerciseById(id)
@@ -42,6 +46,7 @@ fun NotesScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
+                // Dynamically shows the exercise name in the header
                 title = { Text("Notes - $title") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -62,6 +67,10 @@ fun NotesScreen(
             Text("Workout Notes", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(12.dp))
 
+
+
+            //Notes entry field
+
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -73,6 +82,11 @@ fun NotesScreen(
             )
 
             Spacer(Modifier.height(16.dp))
+
+            /*
+             Save button writes notes back to the correct DAO.
+             Runs in IO dispatcher to avoid blocking the UI thread.
+           */
 
             Button(
                 onClick = {

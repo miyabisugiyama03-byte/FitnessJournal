@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.example.fitnessjournalapplication.Screens.*
+import com.example.fitnessjournalapplication.screens.*
 import com.example.fitnessjournalapplication.ui.theme.FitnessJournalApplicationTheme
 import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        //The entire app UI is composed here. Keeping this minimal avoids logic clutter
         setContent {
             FitnessJournalApplicationTheme {
                 FitnessJournalApp()
@@ -49,6 +50,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+/*Navigation route constants. Keeping routes centralised prevents typos and makes adding screens safer */
 object Routes {
     const val DASHBOARD = "dashboard"
     const val EXERCISE_LOG = "exercise_log"
@@ -66,11 +69,13 @@ object Routes {
 @Composable
 fun FitnessJournalApp() {
     val navController = rememberNavController()
+    //Tracks which bottom navigation is selected. This allows for consistent highlighting of the active tab
     var selectedItem by remember { mutableStateOf(Routes.DASHBOARD) }
 
     Scaffold(
         bottomBar = {
             NavigationBar {
+                //Centralised list keeps the bottom bar scalable
                 listOf(
                     Routes.DASHBOARD to Icons.Default.Home,
                     Routes.EXERCISE_LOG to Icons.Default.FitnessCenter,
@@ -79,6 +84,7 @@ fun FitnessJournalApp() {
                     NavigationBarItem(
                         selected = selectedItem == route,
                         onClick = {
+                            //Preserves state and avoids duplication in back stack
                             selectedItem = route
                             navController.navigate(route) {
                                 popUpTo(Routes.DASHBOARD)
@@ -93,22 +99,24 @@ fun FitnessJournalApp() {
         }
     ) { innerPadding ->
         NavHost(
+
             navController = navController,
             startDestination = Routes.DASHBOARD,
             modifier = Modifier.padding(innerPadding)
         ) {
 
-            // ---------------- DASHBOARD ----------------
+            //Dashboard contains all charts separately to manage code easier
             composable(Routes.DASHBOARD) {
                 DashboardScreen()
             }
 
 
 
-            // ---------------- EXERCISE LOG ----------------
+            //Exercise log
             composable(Routes.EXERCISE_LOG) {
                 ExerciseLogScreen(
                     onStrengthClick = {
+                        /*Always default to today when opening logs because the user will most likely use todays logs*/
                         val today = LocalDate.now().toString()
                         navController.navigate("${Routes.STRENGTH_LOG_BASE}/$today")
                     },
@@ -119,7 +127,8 @@ fun FitnessJournalApp() {
                 )
             }
 
-            // ---------------- STRENGTH LOG ----------------
+            //Strength log
+            //Using a date argument allows navigating directly from the calendar.
             composable(
                 route = Routes.STRENGTH_LOG,
                 arguments = listOf(navArgument("date") { type = NavType.StringType })
@@ -140,7 +149,8 @@ fun FitnessJournalApp() {
                 )
             }
 
-            // ---------------- CARDIO LOG ----------------
+            //Cardio log
+            //Using a date argument allows navigating directly from the calendar.
             composable(
                 route = Routes.CARDIO_LOG,
                 arguments = listOf(navArgument("date") { type = NavType.StringType })
@@ -161,7 +171,9 @@ fun FitnessJournalApp() {
                 )
             }
 
-            // ---------------- CALENDAR ----------------
+            //Calendar navigation
+            /*This screen exists separately so
+              the user can navigate freely through the calendar to check previous workouts*/
             composable(Routes.CALENDAR) {
                 CalendarScreen(
                     onBack = { navController.navigateUp() },
@@ -195,22 +207,8 @@ fun FitnessJournalApp() {
     }
 }
 
-// ---------------- DASHBOARD ----------------
-@Composable
-fun DashboardScreen(onCalendarClick: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Welcome to your Dashboard!", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = onCalendarClick) { Text("Open Calendar") }
-        }
-    }
-}
 
-// ---------------- EXERCISE LOG ----------------
+
 @Composable
 fun ExerciseLogScreen(onStrengthClick: () -> Unit, onCardioClick: () -> Unit) {
     Column(
@@ -224,7 +222,7 @@ fun ExerciseLogScreen(onStrengthClick: () -> Unit, onCardioClick: () -> Unit) {
     }
 }
 
-// ---------------- CALENDAR ----------------
+
 @Composable
 fun CalendarScreen(
     onBack: () -> Unit,

@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt") // For Room compiler
     id("org.jetbrains.kotlin.plugin.compose") // Compose plugin
+
 }
 
 android {
@@ -18,6 +19,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+
 
     buildTypes {
         release {
@@ -45,6 +48,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.6.0" // Match your Compose version
     }
+
 }
 
 dependencies {
@@ -84,3 +88,5 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+
